@@ -290,7 +290,6 @@ class TestGuesser(object):
 
         # output a test for checking the keys in the context.
         if self.config.has_context_data:
-            import pdb; pdb.set_trace()
             context2 = context.copy()
             context2['response']['context_keys'] = sorted(set(
                 self.response.context_data.keys()
