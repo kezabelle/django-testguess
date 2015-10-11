@@ -55,6 +55,7 @@ docs/_build/
 
 # PyBuilder
 target/
-autoguessed
+
+# repo specifics.
 bash_history.txt
 *.sqlite3
