@@ -55,3 +55,6 @@ docs/_build/
 
 # PyBuilder
 target/
+autoguessed
+bash_history.txt
+*.sqlite3
