@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from __future__ import unicode_literals
 from functools import partial
 from django.conf.urls import url, include
 from django.contrib import admin
@@ -12,9 +11,11 @@ from django.http import HttpResponse
 from django.shortcuts import render, render_to_response, redirect
 from django.template.response import TemplateResponse
 from django.contrib.auth import urls as auth_urls
+from django.utils.datetime_safe import datetime
+
 
 def returns_redirect(request, permanent):
-    return redirect('admin:index', permanent=permanent)
+    return redirect('/', permanent=permanent)
 
 
 returns_permanent_redirect = partial(returns_redirect, permanent=True)
@@ -31,8 +32,10 @@ def returns_render_to_response(request):
 def returns_templateresponse(request):
     return TemplateResponse(request, template="admin/base.html", context={
         'form': Form(),
-        'queryset': get_user_model().objects.all(),
+        # 'queryset': get_user_model().objects.all(),
         'model': get_user_model()(),
+        'thing': 1,
+        'dt': datetime.today(),
         'sub': {
             'sub2': {
                 'yay': 1,
@@ -64,7 +67,7 @@ def index(request):
     <ul>
         <li><a href="{urls[templateresponse]}">Template Response</a></li>
         <li><a href="{urls[jsonresponse]}">JSON Response</a></li>
-        <li><a href="{urls[render]}">Render shortcut</a></li>
+        <li><a href="{urls[render]}?a=1&b=2&a=3">Render shortcut</a></li>
         <li><a href="{urls[render_response]}">Render to Response shortcut</a></li>
         <li><a href="{urls[redirect_permanent]}">301 Redirect</a></li>
         <li><a href="{urls[redirect]}">302 Redirect</a></li>
@@ -74,7 +77,7 @@ def index(request):
 
 urlpatterns = [
     url(r'^accounts/', include(auth_urls)),
-    url(r'^$', index),
+    url(r'^$', index, name='index'),
     url(r'^1/$', returns_templateresponse, name='1'),
     url(r'^2/$', returns_jsonresponse, name='2'),
     url(r'^3/$', returns_render, name='3'),

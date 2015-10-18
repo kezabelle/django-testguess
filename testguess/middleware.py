@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from __future__ import unicode_literals
 from collections import namedtuple, OrderedDict
 from functools import partial
 from importlib import import_module
@@ -39,6 +38,7 @@ TEST_STATUS_CODE_TEMPLATE = partial(render_to_string, template_name='testguess/s
 TEST_REVERSE_TEMPLATE = partial(render_to_string, template_name='testguess/reverse_url.py')
 TEST_HEADERS_TEMPLATE = partial(render_to_string, template_name='testguess/headers.py')
 TEST_HTML5_OUTPUT_TEMPLATE = partial(render_to_string, template_name='testguess/html5.py')
+TEST_JSON_OUTPUT_TEMPLATE = partial(render_to_string, template_name='testguess/json.py')
 TEST_CONTEXT_DATA_TEMPLATE = partial(render_to_string, template_name='testguess/context_data.py')
 TEST_CUSTOM_USER_TEMPLATE = partial(render_to_string, template_name='testguess/custom_user.py')
 TEST_USER_TEMPLATE = partial(render_to_string, template_name='testguess/user.py')
@@ -165,10 +165,13 @@ class GuessConfiguration(object):
         'supports_html5lib',
         'is_get',
         'is_post',
+        'is_json',
     )
 
     def __init__(self, is_html5, is_ajax, is_authenticated, has_context_data,
-                 has_template_name, has_get_params, is_get, is_post):
+                 has_template_name, has_get_params, is_get, is_post, is_json):
+        assert not all((is_get, is_post)), "Cannot be both GET and POST"
+        assert not all((is_html5, is_json)), "Cannot be both JSON and HTML"
         self.is_html5 = is_html5
         self.is_ajax = is_ajax
         self.is_authenticated = is_authenticated
@@ -178,9 +181,9 @@ class GuessConfiguration(object):
         self.supports_model_mommy = CAN_USE_MOMMY
         self.supports_custom_users = CAN_USE_CUSTOM_USERS
         self.supports_html5lib = CAN_USE_HTML5LIB
-        assert not all((is_get, is_post)), "Cannot be both GET and POST"
         self.is_get = is_get
         self.is_post = is_post
+        self.is_json = is_json
 
     def magic_number(self):
         values = (getattr(self, attr) for attr in self.__slots__)
@@ -257,10 +260,15 @@ class TestGuesser(object):
             'response': {
                 'status_code': self.response.status_code,
                 'headers': [v for k, v in self.response._headers.items()
-                            if v[0] not in ('Last-Modified', 'Expires')]
+                            if v[0] not in ('Last-Modified', 'Expires', 'Location')]
             },
             'setup': [],
         }
+
+        if self.config.is_post:
+            context['request']['data'] = dict(self.request.POST)
+        elif self.config.is_get:
+            context['request']['data'] = dict(self.request.GET)
 
         # Do anything necessary for authenticating users.
         if self.config.is_authenticated:
@@ -287,6 +295,10 @@ class TestGuesser(object):
             tests_context['tests'].update({
                 'html5': TEST_HTML5_OUTPUT_TEMPLATE(context=context)
             })
+        if self.config.is_json:
+            tests_context['tests'].update({
+                'json': TEST_JSON_OUTPUT_TEMPLATE(context=context)
+            })
 
         # output a test for checking the keys in the context.
         if self.config.has_context_data:
@@ -294,6 +306,24 @@ class TestGuesser(object):
             context2['response']['context_keys'] = sorted(set(
                 self.response.context_data.keys()
             ))
+            context_types = tuple(
+                (k, type(v)) for k, v in self.response.context_data.items()
+            )
+            context_imports_parts = tuple(
+                (k, t.__module__, t.__name__)
+                for k, t in context_types
+                if hasattr(t, '__module__') and hasattr(t, '__name__')
+                and t.__name__ not in ('__proxy__',)
+            )
+            context_imports = sorted(
+                (mod, name) for k, mod, name in context_imports_parts
+                if mod != '__builtin__' and name != 'type'
+            )
+            context_instances = sorted(
+                (k, name) for k, mod, name in context_imports_parts
+            )
+            context2['response']['context_value_imports'] = context_imports
+            context2['response']['context_values'] = context_instances
             tests_context['tests'].update({
                 'context_data': TEST_CONTEXT_DATA_TEMPLATE(context=context2)
             })
@@ -336,8 +366,13 @@ class GuessResponse(object):
         if not_in_testsuite and is_not_streaming and is_not_servererror:
             config_handler = self.config_class
             test_guesser = self.guesser_class
+            content = response.content.strip()
+            html = content[0:15].lower() == '<!doctype html>'
+            json_object = content.startswith('{') and content.endswith('}')
+            json_array = content.startswith('[') and content.endswith(']')
             config = config_handler(
-                is_html5=response.content.strip()[0:15].lower() == '<!doctype html>',  # noqa
+                is_html5=html,
+                is_json=json_object or json_array,
                 is_ajax=request.is_ajax(),
                 is_authenticated=(hasattr(request, 'user') and
                                   request.user.is_authenticated()),
