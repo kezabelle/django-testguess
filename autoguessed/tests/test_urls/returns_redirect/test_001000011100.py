@@ -5,7 +5,7 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-11T17:34:13.320911
+    Generated: 2015-10-18T12:30:49.508004
     is_html5: False
     is_ajax: False
     is_authenticated: True
@@ -17,12 +17,13 @@ class GuessedTestCase(TestCase):
     supports_html5lib: True
     is_get: True
     is_post: False
+    is_json: False
     """
     def setUp(self):
         from django.contrib.auth import get_user_model
         from django.utils.crypto import get_random_string
         User = get_user_model()
-        username = '200@GET'
+        username = '302@GET'
         password = get_random_string(5)
         user = User(**{User.USERNAME_FIELD: username})
         user.is_active = True
@@ -38,19 +39,20 @@ class GuessedTestCase(TestCase):
 
     def test_url_reversed(self):
         from django.core.urlresolvers import reverse
-        url = reverse("2",
+        url = reverse("6",
                       args=(),
-                      kwargs={})
-        self.assertEqual(url, "/2/")  # noqa
+                      kwargs={'permanent': False})
+        self.assertEqual(url, "/6/")  # noqa
 
     def test_response_status_code(self):
-        response = self.client.get('/2/')
-        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/6/', data={})
+        self.assertEqual(response.status_code, 302)
 
     def test_response_headers(self):
-        response = self.client.get('/2/')
-        self.assertEqual(response['Content-Type'], 'application/json')
+        response = self.client.get('/6/', data={})
+        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         
+
 
 
 

@@ -5,18 +5,19 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-11T17:34:06.983065
+    Generated: 2015-10-18T12:30:49.524152
     is_html5: True
     is_ajax: False
     is_authenticated: True
-    has_context_data: True
-    has_template_name: True
+    has_context_data: False
+    has_template_name: False
     has_get_params: False
     supports_model_mommy: False
     supports_custom_users: True
     supports_html5lib: True
     is_get: True
     is_post: False
+    is_json: False
     """
     def setUp(self):
         from django.contrib.auth import get_user_model
@@ -38,31 +39,28 @@ class GuessedTestCase(TestCase):
 
     def test_url_reversed(self):
         from django.core.urlresolvers import reverse
-        url = reverse("1",
+        url = reverse("index",
                       args=(),
                       kwargs={})
-        self.assertEqual(url, "/1/")  # noqa
+        self.assertEqual(url, "/")  # noqa
 
     def test_response_status_code(self):
-        response = self.client.get('/1/')
+        response = self.client.get('/', data={})
         self.assertEqual(response.status_code, 200)
 
     def test_response_headers(self):
-        response = self.client.get('/1/')
+        response = self.client.get('/', data={})
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         
 
     def test_response_is_html5(self):
         from html5lib import parse
-        response = self.client.get('/1/')
+        response = self.client.get('/', data={})
         self.assertFalse(response.streaming)
         # rather than F, this will E
         parse(response.content)
 
 
-    def test_templateresponse_context_data(self):
-        response = self.client.get('/1/')
-        expected = set([u'form', u'model', u'queryset', u'sub'])
-        self.assertEqual(expected, set(response.context_data.keys()))
+
 
 

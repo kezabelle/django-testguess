@@ -5,18 +5,19 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-11T17:34:03.235257
+    Generated: 2015-10-18T12:30:39.613186
     is_html5: True
     is_ajax: False
     is_authenticated: True
-    has_context_data: False
-    has_template_name: False
+    has_context_data: True
+    has_template_name: True
     has_get_params: False
     supports_model_mommy: False
     supports_custom_users: True
     supports_html5lib: True
     is_get: True
     is_post: False
+    is_json: False
     """
     def setUp(self):
         from django.contrib.auth import get_user_model
@@ -38,27 +39,46 @@ class GuessedTestCase(TestCase):
 
     def test_url_reversed(self):
         from django.core.urlresolvers import reverse
-        url = reverse("test_urls.index",
+        url = reverse("1",
                       args=(),
                       kwargs={})
-        self.assertEqual(url, "/")  # noqa
+        self.assertEqual(url, "/1/")  # noqa
 
     def test_response_status_code(self):
-        response = self.client.get('/')
+        response = self.client.get('/1/', data={})
         self.assertEqual(response.status_code, 200)
 
     def test_response_headers(self):
-        response = self.client.get('/')
+        response = self.client.get('/1/', data={})
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         
 
     def test_response_is_html5(self):
         from html5lib import parse
-        response = self.client.get('/')
+        response = self.client.get('/1/', data={})
         self.assertFalse(response.streaming)
         # rather than F, this will E
         parse(response.content)
 
 
+
+    def test_templateresponse_context_data_contains_expected_keys(self):
+        response = self.client.get('/1/', data={})
+        expected = set(['dt', 'form', 'model', 'sub', 'thing'])
+        in_context = set(response.context_data.keys())
+        self.assertEqual(expected, in_context)
+
+    def test_templateresponse_context_data_has_expected_types(self):
+        from django.contrib.auth.models import User
+        from django.forms.forms import Form
+        from django.utils.datetime_safe import datetime
+        
+        response = self.client.get('/1/', data={})
+        self.assertIsInstance(response.context_data['dt'], datetime)
+        self.assertIsInstance(response.context_data['form'], Form)
+        self.assertIsInstance(response.context_data['model'], User)
+        self.assertIsInstance(response.context_data['sub'], dict)
+        self.assertIsInstance(response.context_data['thing'], int)
+        
 
 

@@ -5,7 +5,7 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-11T17:34:19.402042
+    Generated: 2015-10-18T12:30:45.630540
     is_html5: True
     is_ajax: False
     is_authenticated: True
@@ -17,6 +17,7 @@ class GuessedTestCase(TestCase):
     supports_html5lib: True
     is_get: True
     is_post: False
+    is_json: False
     """
     def setUp(self):
         from django.contrib.auth import get_user_model
@@ -44,20 +45,21 @@ class GuessedTestCase(TestCase):
         self.assertEqual(url, "/4/")  # noqa
 
     def test_response_status_code(self):
-        response = self.client.get('/4/')
+        response = self.client.get('/4/', data={})
         self.assertEqual(response.status_code, 200)
 
     def test_response_headers(self):
-        response = self.client.get('/4/')
+        response = self.client.get('/4/', data={})
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         
 
     def test_response_is_html5(self):
         from html5lib import parse
-        response = self.client.get('/4/')
+        response = self.client.get('/4/', data={})
         self.assertFalse(response.streaming)
         # rather than F, this will E
         parse(response.content)
+
 
 
 
