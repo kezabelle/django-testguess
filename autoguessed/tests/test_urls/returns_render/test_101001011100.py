@@ -5,7 +5,7 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-18T12:30:43.983231
+    Generated: 2015-10-18T13:44:19.463225
     is_html5: True
     is_ajax: False
     is_authenticated: True
@@ -59,7 +59,6 @@ class GuessedTestCase(TestCase):
         self.assertFalse(response.streaming)
         # rather than F, this will E
         parse(response.content)
-
 
 
 

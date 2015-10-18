@@ -5,7 +5,7 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-18T12:30:49.508004
+    Generated: 2015-10-18T13:44:22.286386
     is_html5: False
     is_ajax: False
     is_authenticated: True
@@ -52,7 +52,6 @@ class GuessedTestCase(TestCase):
         response = self.client.get('/6/', data={})
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         
-
 
 
 

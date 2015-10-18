@@ -10,6 +10,11 @@ from django.utils.datetime_safe import datetime
 import os
 from django.conf import settings
 from django.template.loader import render_to_string
+from .generators import (generate_user_for_setup,
+                         generate_content_parsing_test,
+                         generate_context_data_test,
+                         generate_status_code_test, generate_url_reverse_test,
+                         generate_response_headers_test)
 
 try:
     from django.contrib.auth import get_user_model
@@ -34,14 +39,6 @@ PrepareResult = namedtuple("PrepareResult", 'project_root tree')
 
 EMPTY_INIT_TEMPLATE = partial(render_to_string, template_name="testguess/empty_init.py")
 TEST_TEMPLATE = partial(render_to_string, template_name='testguess/generated_class.py')
-TEST_STATUS_CODE_TEMPLATE = partial(render_to_string, template_name='testguess/status_code.py')
-TEST_REVERSE_TEMPLATE = partial(render_to_string, template_name='testguess/reverse_url.py')
-TEST_HEADERS_TEMPLATE = partial(render_to_string, template_name='testguess/headers.py')
-TEST_HTML5_OUTPUT_TEMPLATE = partial(render_to_string, template_name='testguess/html5.py')
-TEST_JSON_OUTPUT_TEMPLATE = partial(render_to_string, template_name='testguess/json.py')
-TEST_CONTEXT_DATA_TEMPLATE = partial(render_to_string, template_name='testguess/context_data.py')
-TEST_CUSTOM_USER_TEMPLATE = partial(render_to_string, template_name='testguess/custom_user.py')
-TEST_USER_TEMPLATE = partial(render_to_string, template_name='testguess/user.py')
 
 
 class TestFileHandler(object):
@@ -265,7 +262,11 @@ class TestGuesser(object):
             'setup': [],
         }
 
-        if self.config.is_post:
+        if self.config.is_post and self.config.has_get_params:
+            context['request']['data'] = dict(self.request.POST)
+            # include the QS.
+            context['request']['path'] = self.request.get_full_path()
+        elif self.config.is_post:
             context['request']['data'] = dict(self.request.POST)
         elif self.config.is_get:
             context['request']['data'] = dict(self.request.GET)
@@ -274,60 +275,24 @@ class TestGuesser(object):
         if self.config.is_authenticated:
             context['request']['user'] = self.request.user
 
-            if self.config.supports_custom_users:
-                context['setup'].append(TEST_CUSTOM_USER_TEMPLATE(context=context))
-            else:
-                context['setup'].append(TEST_USER_TEMPLATE(context=context))
+        user_for_test = generate_user_for_setup(config=self.config,
+                                                context=context)
+        context['setup'].append(user_for_test)
 
-        status_code = TEST_STATUS_CODE_TEMPLATE(context=context)
-        reversed = TEST_REVERSE_TEMPLATE(context=context)
-        headers = TEST_HEADERS_TEMPLATE(context=context)
-        tests_context = {
-            'tests': {
-                'status_code': status_code,
-                'reverse': reversed,
-                'headers': headers,
-            }
+        tests_to_run = {
+            'status_code': generate_status_code_test,
+            'reverse': generate_url_reverse_test,
+            'headers': generate_response_headers_test,
+            'content_parsed': generate_content_parsing_test,
+            'context_data': generate_context_data_test,
         }
-
-        # output the test for parsing as HTML5
-        if self.config.is_html5 and self.config.supports_html5lib:
-            tests_context['tests'].update({
-                'html5': TEST_HTML5_OUTPUT_TEMPLATE(context=context)
-            })
-        if self.config.is_json:
-            tests_context['tests'].update({
-                'json': TEST_JSON_OUTPUT_TEMPLATE(context=context)
-            })
-
-        # output a test for checking the keys in the context.
-        if self.config.has_context_data:
-            context2 = context.copy()
-            context2['response']['context_keys'] = sorted(set(
-                self.response.context_data.keys()
-            ))
-            context_types = tuple(
-                (k, type(v)) for k, v in self.response.context_data.items()
-            )
-            context_imports_parts = tuple(
-                (k, t.__module__, t.__name__)
-                for k, t in context_types
-                if hasattr(t, '__module__') and hasattr(t, '__name__')
-                and t.__name__ not in ('__proxy__',)
-            )
-            context_imports = sorted(
-                (mod, name) for k, mod, name in context_imports_parts
-                if mod != '__builtin__' and name != 'type'
-            )
-            context_instances = sorted(
-                (k, name) for k, mod, name in context_imports_parts
-            )
-            context2['response']['context_value_imports'] = context_imports
-            context2['response']['context_values'] = context_instances
-            tests_context['tests'].update({
-                'context_data': TEST_CONTEXT_DATA_TEMPLATE(context=context2)
-            })
-        context.update(tests_context)
+        tests_context = {}
+        for k, v in tests_to_run.items():
+            generated_test = v(config=self.config, request=self.request,
+                               response=self.response, context=context)
+            if generated_test is not None:
+                tests_context[k] = generated_test
+        context['tests'] = tests_context
         finalised = TEST_TEMPLATE(context=context)
         last = files.tree[-1]
         assert last.file.endswith('test_{}.py'.format(self.config.magic_number()))

@@ -15,7 +15,6 @@ class GuessedTestCase(TestCase):
 {{ tests.reverse }}
 {{ tests.status_code }}
 {{ tests.headers }}
-{{ tests.html5 }}
-{{ tests.json }}
+{{ tests.content_parsed }}
 {{ tests.context_data }}
 

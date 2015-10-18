@@ -5,7 +5,7 @@ from django.test import TestCase
 
 class GuessedTestCase(TestCase):
     """
-    Generated: 2015-10-18T12:30:41.996414
+    Generated: 2015-10-18T13:44:18.042303
     is_html5: False
     is_ajax: False
     is_authenticated: True
@@ -52,7 +52,6 @@ class GuessedTestCase(TestCase):
         response = self.client.get('/2/', data={})
         self.assertEqual(response['Content-Type'], 'application/json')
         
-
 
     def test_response_is_json(self):
         from json import loads
